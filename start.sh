@@ -35,7 +35,7 @@ if [ ! -d "node_modules" ]; then
 fi
 
 echo ""
-echo "  Frontend: http://localhost:5173"
+echo "  Frontend: http://localhost:5200"
 echo "  Backend:  http://localhost:3001"
 echo ""
 
