@@ -4,8 +4,9 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import { generateEvent, generateBurst } from './logGenerator';
+import { generateEvent, generateBurst, pickC2Ip } from './logGenerator';
 import { ThreatDetector } from './threatDetector';
+import { initThreatFeed, getThreatData } from './threatIntelFeed';
 import { LogEvent, Alert, Stats, TimeSeriesPoint } from './types';
 
 const app = express();
@@ -32,6 +33,9 @@ const apiLimiter = rateLimit({
   message: { error: 'Too many requests' },
 });
 app.use('/api', apiLimiter);
+
+// ─── Threat intel feed ────────────────────────────────────────────────────────
+initThreatFeed(); // non-blocking; falls back to built-ins while fetching
 
 // ─── In-memory store ───────────────────────────────────────────────────────────
 const MAX_LOGS = 2000;
@@ -123,7 +127,19 @@ function computeStats(): Stats {
 }
 
 // ─── REST API ──────────────────────────────────────────────────────────────────
-app.get('/api/health', (_req, res) => res.json({ status: 'ok', uptime: process.uptime() }));
+app.get('/api/health', (_req, res) => {
+  const td = getThreatData();
+  res.json({
+    status: 'ok',
+    uptime: process.uptime(),
+    threat_intel: {
+      c2_ips:       td.c2Ips.length,
+      malware_urls: td.malwareUrls.length,
+      cves:         td.cves.length,
+      last_updated: td.lastUpdated,
+    },
+  });
+});
 
 app.get('/api/logs', (req, res) => {
   const raw = req.query.limit;
@@ -198,8 +214,7 @@ let waveIp: string | undefined;
 
 setInterval(() => {
   if (attackWaveCountdown <= 0 && Math.random() < 0.02) {
-    const attackIps = ['185.220.101.45', '103.214.147.20', '91.108.4.200', '221.181.185.198'];
-    waveIp = attackIps[Math.floor(Math.random() * attackIps.length)];
+    waveIp = pickC2Ip(); // real C2 IP from Feodo Tracker (or fallback)
     attackWaveCountdown = 15;
     console.log(`[!] Attack wave from ${waveIp}`);
   }
