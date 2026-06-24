@@ -12,7 +12,7 @@ interface IpTracker {
   lastSeen: number;
 }
 
-const MITRE_MAP: Record<AttackType, { tactic: string; technique: string; id: string }> = {
+export const MITRE_MAP: Record<AttackType, { tactic: string; technique: string; id: string }> = {
   brute_force: { tactic: 'Credential Access', technique: 'Brute Force', id: 'T1110' },
   port_scan: { tactic: 'Discovery', technique: 'Network Service Scanning', id: 'T1046' },
   sql_injection: { tactic: 'Initial Access', technique: 'Exploit Public-Facing Application', id: 'T1190' },

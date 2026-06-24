@@ -8,26 +8,36 @@ import { generateEvent, generateBurst, pickC2Ip } from './logGenerator';
 import { ThreatDetector } from './threatDetector';
 import { initThreatFeed, getThreatData } from './threatIntelFeed';
 import { LogEvent, Alert, Stats, TimeSeriesPoint } from './types';
+import { loadConfig, AppConfig } from './config';
+import { validateAlertId, validateAlertStatus, parseLimit } from './validation';
+
+// Validate environment at startup — fail fast on bad config.
+function loadConfigOrExit(): AppConfig {
+  try {
+    return loadConfig();
+  } catch (err) {
+    console.error('[CONFIG] Invalid configuration:', (err as Error).message);
+    process.exit(1);
+  }
+}
+const config = loadConfigOrExit();
 
 const app = express();
 const httpServer = createServer(app);
 
-const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS?.split(',') ?? [
-  'http://localhost:5200',
-  'http://localhost:3000',
-];
-
 const io = new Server(httpServer, {
-  cors: { origin: ALLOWED_ORIGINS, methods: ['GET', 'POST'] },
+  cors: { origin: config.allowedOrigins, methods: ['GET', 'POST'] },
+  maxHttpBufferSize: 1e6, // 1 MB cap on inbound socket payloads
 });
 
+app.disable('x-powered-by');
 app.use(helmet({ contentSecurityPolicy: false })); // CSP handled by frontend
-app.use(cors({ origin: ALLOWED_ORIGINS }));
+app.use(cors({ origin: config.allowedOrigins }));
 app.use(express.json({ limit: '10kb' }));
 
 const apiLimiter = rateLimit({
   windowMs: 60_000,
-  max: 300,
+  max: config.rateLimitMax,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests' },
@@ -142,9 +152,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.get('/api/logs', (req, res) => {
-  const raw = req.query.limit;
-  const parsed = typeof raw === 'string' ? parseInt(raw, 10) : NaN;
-  const limit = isNaN(parsed) ? 200 : Math.min(Math.max(parsed, 1), 500);
+  const limit = parseLimit(req.query.limit);
   res.json(logs.slice(0, limit));
 });
 
@@ -153,21 +161,21 @@ app.get('/api/alerts', (_req, res) => res.json(alerts));
 app.get('/api/stats', (_req, res) => res.json(computeStats()));
 
 app.patch('/api/alerts/:id', (req, res) => {
-  const id = req.params.id;
-  if (typeof id !== 'string' || id.length > 64) {
-    return res.status(400).json({ error: 'Invalid id' });
+  const idResult = validateAlertId(req.params.id);
+  if (!idResult.ok) {
+    return res.status(400).json({ error: idResult.error });
   }
 
-  const idx = alerts.findIndex(a => a.id === id);
+  const statusResult = validateAlertStatus((req.body ?? {}).status);
+  if (!statusResult.ok) {
+    return res.status(400).json({ error: statusResult.error });
+  }
+
+  const idx = alerts.findIndex(a => a.id === idResult.value);
   if (idx === -1) return res.status(404).json({ error: 'Alert not found' });
 
-  const { status } = req.body ?? {};
-  if (!['active', 'acknowledged', 'resolved'].includes(status)) {
-    return res.status(400).json({ error: 'Invalid status' });
-  }
-
   // Immutable update — replace element instead of mutating in place
-  const updated: Alert = { ...alerts[idx], status };
+  const updated: Alert = { ...alerts[idx], status: statusResult.value! };
   alerts[idx] = updated;
   io.emit('alert_updated', updated);
   return res.json(updated);
@@ -243,7 +251,6 @@ setInterval(() => {
 setInterval(() => detector.cleanup(), 5 * 60_000);
 
 // ─── Start Server ──────────────────────────────────────────────────────────────
-const PORT = parseInt(process.env.PORT ?? '3001', 10);
-httpServer.listen(PORT, () => {
-  console.log(`[*] SIEM Backend running on http://localhost:${PORT}`);
+httpServer.listen(config.port, () => {
+  console.log(`[*] SIEM Backend running on http://localhost:${config.port}`);
 });
