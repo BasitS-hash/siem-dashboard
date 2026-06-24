@@ -94,7 +94,7 @@ const COUNTRY_GEO: Record<string, GeoDefaults> = {
   MY: { country: 'Malaysia',       city: 'Kuala Lumpur',  lat:   3.14,  lon:  101.69 },
 };
 
-function geoFromCountryCode(code: string): GeoInfo {
+export function geoFromCountryCode(code: string): GeoInfo {
   const g = COUNTRY_GEO[code];
   if (g) {
     return { country: g.country, country_code: code, city: g.city, lat: g.lat, lon: g.lon };
@@ -140,24 +140,63 @@ async function fetchFeodoTracker(): Promise<C2Entry[]> {
 
 // ─── URLhaus ────────────────────────────────────────────────────────────────
 
-function parseUrlhausCsv(csv: string): MalwareUrlEntry[] {
+/**
+ * Splits a single CSV line into logical fields, honoring double-quoted values
+ * (including commas inside quotes and "" escaped quotes). Returns trimmed,
+ * unquoted field strings.
+ */
+function splitCsvLine(line: string): string[] {
+  const fields: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+
+    if (inQuotes) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') {
+          current += '"'; // escaped quote
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        current += ch;
+      }
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === ',') {
+      fields.push(current.trim());
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  fields.push(current.trim());
+  return fields;
+}
+
+export function parseUrlhausCsv(csv: string): MalwareUrlEntry[] {
   const lines = csv.split('\n');
   const results: MalwareUrlEntry[] = [];
 
-  for (const line of lines) {
+  for (const rawLine of lines) {
+    const line = rawLine.replace(/\r$/, '');
     // Skip comments and header
     if (line.startsWith('#') || line.startsWith('"id"') || line.trim() === '') continue;
 
     // CSV fields: id,dateadded,url,url_status,last_online,threat,tags,urlhaus_link,reporter
-    const parts = line.match(/("(?:[^"]|"")*"|[^,]*)/g);
-    if (!parts || parts.length < 7) continue;
+    const fields = splitCsvLine(line);
+    if (fields.length < 7) continue;
 
-    const unquote = (s: string) => s.replace(/^"|"$/g, '').replace(/""/g, '"').trim();
-    const urlVal    = unquote(parts[2] ?? '');
-    const status    = unquote(parts[3] ?? '') as 'online' | 'offline';
-    const threat    = unquote(parts[5] ?? '');
-    const tagsRaw   = unquote(parts[6] ?? '');
-    const tags      = tagsRaw === 'None' ? [] : tagsRaw.split(',').map(t => t.trim()).filter(Boolean);
+    const urlVal  = fields[2] ?? '';
+    const status  = (fields[3] ?? '') as 'online' | 'offline';
+    const threat  = fields[5] ?? '';
+    const tagsRaw = fields[6] ?? '';
+    const tags    = tagsRaw === 'None' || tagsRaw === ''
+      ? []
+      : tagsRaw.split(',').map(t => t.trim()).filter(Boolean);
 
     if (!urlVal || !urlVal.startsWith('http')) continue;
     results.push({ url: urlVal, threat, tags, status });
