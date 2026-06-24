@@ -1,8 +1,36 @@
+# Dependencies
 node_modules/
+
+# Build output
 dist/
+build/
+*.tsbuildinfo
+
+# Environment / secrets
 .env
 .env.local
-*.log
-.DS_Store
-.vite/
+.env.*.local
+
+# Test / coverage artifacts
 coverage/
+*.lcov
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Caches
+.vite/
+.cache/
+.eslintcache
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Claude Code worktrees / local agent state
+.claude/
