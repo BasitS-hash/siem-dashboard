@@ -1,62 +1,99 @@
-# SentinelView — Real-Time SIEM Dashboard
+<div align="center">
 
-> **GMU Hackathon 2026** · Security Information and Event Management Platform
+# 🛡️ SentinelView
 
-A production-quality Security Information and Event Management (SIEM) dashboard featuring real-time log ingestion, automated threat detection, MITRE ATT&CK aligned alerting, and rich security visualizations.
+### Real-Time SIEM Dashboard with Live Threat Intelligence & MITRE ATT&CK Mapping
+
+Stream, detect, and triage security events in real time — backed by live abuse.ch and CISA KEV feeds, correlated through a rules engine, and mapped to the MITRE ATT&CK framework.
+
+[![CI](https://github.com/BasitS-hash/siem-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/BasitS-hash/siem-dashboard/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/BasitS-hash/siem-dashboard/actions/workflows/codeql.yml/badge.svg)](https://github.com/BasitS-hash/siem-dashboard/actions/workflows/codeql.yml)
+[![Security Scan](https://github.com/BasitS-hash/siem-dashboard/actions/workflows/security.yml/badge.svg)](https://github.com/BasitS-hash/siem-dashboard/actions/workflows/security.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.3-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+
+</div>
 
 ---
 
-## Screenshots
+## Overview
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│  🛡 SentinelView          Security Overview              09:42:17   │
-├──────────┬──────────────────────────────────────────────────────────┤
-│ Overview │  [Total Events] [Active Threats] [Critical] [EPM] ...    │
-│ Live Feed│                                                          │
-│ Alerts   │  ┌─ Events Over Time ───────────────┐ ┌─ Severity ───┐  │
-│ Rules    │  │  ▁▂▃▅▄▆▇█▇▅▄▃▂▁ (stacked area) │ │   Donut      │  │
-│          │  └──────────────────────────────────┘ └──────────────┘  │
-│ CONNECTED│                                                          │
-└──────────┴──────────────────────────────────────────────────────────┘
-```
+**SentinelView** is a full-stack Security Information and Event Management (SIEM) dashboard. A Node.js backend synthesizes a realistic stream of security events — blended with **real threat intelligence** pulled from public feeds — runs each event through a windowed detection engine, and pushes alerts to a React dashboard over WebSockets. Every alert is mapped to a MITRE ATT&CK tactic and technique, plotted on a live geographic threat map, and exportable to CSV.
+
+It is built as a portfolio-grade demonstration of real-time data pipelines, threat-detection logic, secure API design, and modern TypeScript engineering — not a toy.
+
+> **Why it's interesting:** the event stream isn't pure noise. Command-and-control IPs come from the **abuse.ch Feodo Tracker**, malware download URLs from **URLhaus**, and exploited-vulnerability references from the **CISA Known Exploited Vulnerabilities** catalog — so the dashboard reflects the live threat landscape.
+
+---
 
 ## Features
 
-### Core SIEM Capabilities
-- **Real-Time Event Stream** — WebSocket-driven live log ingestion at ~75 events/minute
-- **Attack Wave Simulation** — Periodic attack bursts from high-risk IPs for realistic demos
-- **Threat Detection Engine** — Rules-based detection with configurable thresholds and time windows
-- **Alert Management** — Acknowledge / resolve workflow with full audit trail
+### Detection & Intelligence
+- **Real-time event stream** — Socket.io pushes log events and alerts to the browser with no polling.
+- **Windowed detection engine** — stateful, per-source-IP correlation over sliding time windows with alert de-duplication.
+- **Live threat intelligence** — hourly refresh from Feodo Tracker (C2 IPs), URLhaus (malware URLs), and CISA KEV (real CVEs), with graceful offline fallback.
+- **MITRE ATT&CK mapping** — every alert carries a tactic, technique, and technique ID.
+- **Geographic threat map** — source IPs geolocated and plotted in real time.
+- **CSV export** — alerts and logs exportable with formula-injection-safe encoding.
 
 ### Detection Rules (MITRE ATT&CK Aligned)
-| Rule | MITRE ID | Severity |
-|------|----------|----------|
-| SSH/RDP Brute Force | T1110 | High |
-| Network Port Scan | T1046 | High |
-| SQL Injection | T1190 | Critical |
-| Cross-Site Scripting | T1059.007 | High |
-| Privilege Escalation | T1548.003 | Critical |
-| Reverse Shell / C2 | T1071 | Critical |
-| Data Exfiltration | T1041 | Critical |
-| Lateral Movement | T1021 | High |
-| Sensitive File Access | T1555 | High |
-| Cron Persistence | T1053.003 | Critical |
-| High-Risk Port Access | T1133 | Medium |
-| Recon Tool Detection | T1592 | Medium |
 
-### Dashboard Pages
-1. **Overview** — 6 KPI cards, events timeline (area chart), severity donut, top attackers bar, category radar, recent alerts + logs
-2. **Live Feed** — Real-time scrolling log table, pause/resume, search, severity/category filters
-3. **Alerts** — Alert cards with MITRE tactic/technique badges, status filter tabs, acknowledge/resolve actions
-4. **Detection Rules** — All 12 rules with toggle on/off, detection logic, thresholds, MITRE mapping
+| Rule | Trigger | MITRE ID | Severity |
+|------|---------|----------|----------|
+| Brute Force | ≥5 failed auths / 60s from one IP | T1110 | High |
+| Port Scan | ≥8 unique ports / 60s from one IP | T1046 | High |
+| SQL Injection | Any `sqli`-tagged request | T1190 | Critical |
+| Cross-Site Scripting | Any `xss`-tagged request | T1059.007 | High |
+| Data Exfiltration | >10 MB outbound in window | T1041 | Critical |
+| Privilege Escalation | `sudo`/escalation indicators | T1548.003 | Critical |
+| Reverse Shell / C2 | Reverse-shell or beacon indicators | T1071 | Critical |
+| Lateral Movement | External IP contacting ≥5 internal hosts | T1021 | High |
 
-### Security Event Types
-- Authentication (login success/failure, SSH, RDP, LDAP, Kerberos)
-- Network (TCP/UDP connections, flags, port scans)
-- Web (HTTP methods, SQLi/XSS payloads, path traversal)
-- System (process execution, privilege escalation, file access, persistence)
-- Firewall (allow/block decisions)
+### Dashboard
+1. **Overview** — KPI cards, events-over-time area chart, severity donut, top attackers, category breakdown, recent alerts/logs.
+2. **Live Feed** — scrolling event table with pause/resume, search, and severity/category filters.
+3. **Alerts** — MITRE-badged alert cards with acknowledge/resolve workflow.
+4. **Threat Map** — geolocated source IPs on a world map.
+5. **Detection Rules** — rule catalog with thresholds, logic, and MITRE mapping.
+
+---
+
+## Architecture
+
+```mermaid
+flowchart LR
+    subgraph Intel["Threat Intel Feeds"]
+        F1[Feodo Tracker<br/>C2 IPs]
+        F2[URLhaus<br/>Malware URLs]
+        F3[CISA KEV<br/>CVEs]
+    end
+
+    subgraph Backend["Node.js Backend"]
+        TI[Threat Intel Feed<br/>hourly refresh + fallback]
+        GEN[Log Generator]
+        DET[Detection Engine<br/>windowed correlation]
+        API[Express REST API<br/>helmet · CORS allowlist · rate limit]
+        WS[Socket.io Gateway]
+    end
+
+    subgraph Frontend["React + Vite SPA"]
+        HOOK[useSocket hook]
+        UI[Dashboard · Live Feed · Alerts<br/>Threat Map · Rules]
+    end
+
+    F1 & F2 & F3 --> TI
+    TI --> GEN
+    GEN --> DET
+    DET -->|alerts| WS
+    GEN -->|events| WS
+    API <-->|REST| HOOK
+    WS <-->|WebSocket| HOOK
+    HOOK --> UI
+```
+
+**Data flow:** threat feeds seed the generator → events flow through the detection engine → alerts and events broadcast over Socket.io → the React client renders live state and supports acknowledge/resolve and CSV export.
 
 ---
 
@@ -64,160 +101,175 @@ A production-quality Security Information and Event Management (SIEM) dashboard 
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | React 18 + TypeScript + Vite |
-| Styling | Tailwind CSS v3 (dark cyber theme) |
-| Charts | Recharts (Area, Pie, Bar, Radar) |
-| Icons | Lucide React |
-| Real-Time | Socket.io Client |
-| Backend | Node.js + Express + Socket.io |
-| Language | TypeScript (full-stack) |
-| Package Mgmt | npm Workspaces (monorepo) |
+| Frontend | React 18, TypeScript 5, Vite 5 |
+| Styling | Tailwind CSS 3 (dark cyber theme) |
+| Charts | Recharts (area, pie, bar, radar) |
+| Real-time | Socket.io |
+| Backend | Node.js 20+, Express 4 |
+| Security | helmet, express-rate-limit, CORS allowlist, startup env validation |
+| Testing | Vitest (+ v8 coverage, jsdom) |
+| Tooling | npm workspaces (monorepo), GitHub Actions, CodeQL, gitleaks, Dependabot |
 
 ---
 
 ## Quick Start
 
 ### Prerequisites
-- Node.js 18+
-- npm 8+
+- Node.js 20+
+- npm 10+
 
-### Installation
+### Install & Run
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-org/gmu-hackathon-siem-dashboard.git
-cd gmu-hackathon-siem-dashboard
+git clone https://github.com/BasitS-hash/siem-dashboard.git
+cd siem-dashboard
 
-# Install all dependencies (frontend + backend)
+# Install all workspaces (frontend + backend)
 npm install
-```
 
-### Development (both frontend + backend concurrently)
+# Optional: copy and adjust environment defaults
+cp .env.example .env
 
-```bash
+# Run backend + frontend together
 npm run dev
 ```
 
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:3001
-- WebSocket: ws://localhost:3001
+- **Frontend:** http://localhost:5200
+- **Backend API:** http://localhost:3001
+- **WebSocket:** ws://localhost:3001
 
 ### Production Build
 
 ```bash
-npm run build
-npm start  # starts backend serving on port 3001
+npm run build      # builds frontend bundle + compiles backend
+npm start          # serves the backend on port 3001
 ```
+
+### Test & Verify
+
+```bash
+npm run test --workspace=backend     # 61 tests
+npm run test --workspace=frontend    # 21 tests
+npm run test:coverage --workspace=backend
+npm run typecheck --workspace=backend
+npm run typecheck --workspace=frontend
+```
+
+---
+
+## Configuration
+
+All configuration is via environment variables (see [`.env.example`](.env.example)):
+
+| Variable | Scope | Default | Description |
+|----------|-------|---------|-------------|
+| `PORT` | Backend | `3001` | Server listen port (validated at startup) |
+| `ALLOWED_ORIGINS` | Backend | `localhost:5200,3000` | Comma-separated CORS allowlist (no `*`) |
+| `RATE_LIMIT_MAX` | Backend | `300` | Max `/api` requests per IP per minute |
+| `VITE_BACKEND_URL` | Frontend | `localhost:3001` | Backend base URL (dev uses Vite proxy) |
+
+Invalid values (e.g. a non-numeric port or a wildcard origin) cause the backend to fail fast at boot with a clear message.
+
+---
+
+## API Reference
+
+### REST
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/health` | Health + threat-intel freshness |
+| GET | `/api/logs?limit=200` | Recent events (limit clamped 1–500) |
+| GET | `/api/alerts` | All alerts |
+| GET | `/api/stats` | Current aggregate statistics |
+| PATCH | `/api/alerts/:id` | Update alert status (validated id + status enum) |
+
+### WebSocket Events (Server → Client)
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `init` | `{ logs, alerts, stats }` | Initial snapshot on connect |
+| `log` | `LogEvent` | New security event |
+| `alert` | `Alert` | New threat alert |
+| `alert_updated` | `Alert` | Alert status change |
+| `stats` | `Stats` | Aggregate stats (every 5s) |
 
 ---
 
 ## Project Structure
 
 ```
-gmu-hackathon-siem-dashboard/
+siem-dashboard/
 ├── backend/
-│   ├── src/
-│   │   ├── index.ts          # Express + Socket.io server
-│   │   ├── logGenerator.ts   # Realistic security event generator
-│   │   ├── threatDetector.ts # Rules-based threat detection engine
-│   │   └── types.ts          # Shared TypeScript types
-│   ├── package.json
-│   └── tsconfig.json
-│
+│   └── src/
+│       ├── index.ts             # Express + Socket.io server
+│       ├── config.ts            # Env parsing & startup validation
+│       ├── validation.ts        # Pure input validators
+│       ├── threatDetector.ts    # Windowed detection engine + MITRE map
+│       ├── threatIntelFeed.ts   # Feodo / URLhaus / CISA KEV ingestion
+│       ├── logGenerator.ts      # Realistic event generator
+│       ├── types.ts             # Shared types
+│       └── *.test.ts            # Vitest suites
 ├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── charts/       # Recharts wrappers (Area, Pie, Bar, Radar)
-│   │   │   ├── AlertCard.tsx # Alert card with actions
-│   │   │   ├── Header.tsx    # Top navigation bar
-│   │   │   ├── LogTable.tsx  # Reusable log event table
-│   │   │   ├── Sidebar.tsx   # Navigation sidebar
-│   │   │   ├── SeverityBadge.tsx
-│   │   │   └── StatCard.tsx  # KPI metric card
-│   │   ├── hooks/
-│   │   │   └── useSocket.ts  # Socket.io React hook
-│   │   ├── pages/
-│   │   │   ├── Dashboard.tsx # Overview page
-│   │   │   ├── LiveFeed.tsx  # Real-time log stream
-│   │   │   ├── Alerts.tsx    # Alert management
-│   │   │   └── Rules.tsx     # Detection rules viewer
-│   │   ├── types/index.ts    # Frontend TypeScript types
-│   │   ├── App.tsx           # Root component + state management
-│   │   ├── index.css         # Tailwind + custom styles
-│   │   └── main.tsx
-│   ├── package.json
-│   ├── vite.config.ts
-│   ├── tailwind.config.js
-│   └── tsconfig.json
-│
-├── .env.example
-├── .gitignore
-├── LICENSE
-├── README.md
-└── package.json              # Root workspace config
+│   └── src/
+│       ├── pages/               # Dashboard, LiveFeed, Alerts, ThreatMap, Rules
+│       ├── components/          # Charts, cards, table, header, sidebar
+│       ├── hooks/               # useSocket, useToast
+│       ├── lib/exportCsv.ts     # Injection-safe CSV export
+│       └── lib/exportCsv.test.ts
+├── .github/
+│   ├── workflows/               # ci · codeql · security
+│   └── dependabot.yml
+├── SECURITY.md
+├── CONTRIBUTING.md
+└── package.json                 # npm workspaces root
 ```
 
 ---
 
-## API Reference
+## Screenshots
 
-### REST Endpoints
+> _Placeholder — add captures of the Overview, Threat Map, and Alerts views here._
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/health` | Health check |
-| GET | `/api/logs?limit=200` | Recent log events |
-| GET | `/api/alerts` | All alerts |
-| GET | `/api/stats` | Current statistics |
-| PATCH | `/api/alerts/:id` | Update alert status |
-
-### WebSocket Events
-
-| Event | Direction | Payload |
-|-------|-----------|---------|
-| `init` | Server → Client | `{ logs, alerts, stats }` — initial data dump |
-| `log` | Server → Client | `LogEvent` — new security event |
-| `alert` | Server → Client | `Alert` — new threat alert |
-| `alert_updated` | Server → Client | `Alert` — alert status change |
-| `stats` | Server → Client | `Stats` — updated statistics (every 5s) |
+| Overview | Threat Map | Alerts |
+|----------|-----------|--------|
+| _coming soon_ | _coming soon_ | _coming soon_ |
 
 ---
 
-## Architecture Decisions
+## Security
 
-**Why monorepo?** Single `npm install` from root sets up everything. Shared TypeScript types between frontend and backend reduce duplication.
+Security posture, hardening details, and the vulnerability-reporting process are documented in **[SECURITY.md](SECURITY.md)**. Highlights:
 
-**Why Socket.io over raw WebSocket?** Automatic reconnection, fallback to polling, and room-based broadcasting for future multi-tenant support.
+- **Backend hardening** — helmet headers, CORS allowlist (wildcards rejected), per-IP rate limiting, JSON body size cap, Socket.io payload cap, `x-powered-by` disabled, centralized error handler that never leaks stack traces.
+- **Input validation** — alert IDs, status enums, and query limits validated/clamped at the boundary.
+- **CSV formula-injection defense** — exported cells beginning with `= + - @` (and tab/CR) are neutralized.
+- **Startup config validation** — bad env vars fail fast.
+- **Automated scanning** — CodeQL, gitleaks, and `npm audit` run in CI.
 
-**Why in-memory store?** Hackathon scope — swappable for Elasticsearch, ClickHouse, or PostgreSQL TimescaleDB in production.
-
-**Why no auth?** By design for demo. Production would add JWT + RBAC.
+This is a **demonstration** project: it has no authentication by design and uses an in-memory store. Do not deploy it as-is to handle production traffic — see the roadmap.
 
 ---
 
-## Future Roadmap
+## Roadmap
 
-- [ ] Persistent storage (Elasticsearch / ClickHouse)
-- [ ] Real log ingestion via syslog, Filebeat, or Fluent Bit
-- [ ] GeoIP map visualization (D3 world map)
-- [ ] Threat intelligence feed integration (AbuseIPDB, VirusTotal)
-- [ ] User authentication and RBAC
-- [ ] Email / PagerDuty / Slack alerting integrations
-- [ ] Custom rule builder with Sigma rule support
-- [ ] Multi-tenant architecture
+- [ ] Authentication + RBAC (JWT / OIDC)
+- [ ] Persistent storage (Elasticsearch / ClickHouse / TimescaleDB)
+- [ ] Real log ingestion (syslog, Filebeat, Fluent Bit)
+- [ ] Custom rule builder with Sigma rule import
+- [ ] Alerting integrations (Slack, PagerDuty, email)
+- [ ] Dockerfile + container scanning (Trivy)
+- [ ] Multi-tenant support
 
 ---
 
 ## License
 
-[MIT](LICENSE) © 2026 GMU Hackathon Team
-
----
+[MIT](LICENSE) © 2026 SentinelView SIEM Dashboard
 
 ## Acknowledgments
 
-- [MITRE ATT&CK Framework](https://attack.mitre.org/) — threat classification
-- [Recharts](https://recharts.org/) — composable charting library
-- [Lucide Icons](https://lucide.dev/) — clean SVG icons
-- [Tailwind CSS](https://tailwindcss.com/) — utility-first styling
-- [Socket.io](https://socket.io/) — real-time bidirectional events
+- [MITRE ATT&CK](https://attack.mitre.org/) — threat classification framework
+- [abuse.ch](https://abuse.ch/) — Feodo Tracker & URLhaus feeds
+- [CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) — exploited-vulnerability catalog
+- [Recharts](https://recharts.org/), [Lucide](https://lucide.dev/), [Tailwind CSS](https://tailwindcss.com/), [Socket.io](https://socket.io/)
