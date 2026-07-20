@@ -101,7 +101,7 @@ flowchart LR
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | React 18, TypeScript 5, Vite 5 |
+| Frontend | React 18, TypeScript 5, Vite 6 |
 | Styling | Tailwind CSS 3 (dark cyber theme) |
 | Charts | Recharts (area, pie, bar, radar) |
 | Real-time | Socket.io |
@@ -148,7 +148,7 @@ npm start          # serves the backend on port 3001
 ### Test & Verify
 
 ```bash
-npm run test --workspace=backend     # 61 tests
+npm run test --workspace=backend     # 69 tests
 npm run test --workspace=frontend    # 21 tests
 npm run test:coverage --workspace=backend
 npm run typecheck --workspace=backend

@@ -10,6 +10,7 @@ import { initThreatFeed, getThreatData } from './threatIntelFeed';
 import { LogEvent, Alert, Stats, TimeSeriesPoint } from './types';
 import { loadConfig, AppConfig } from './config';
 import { validateAlertId, validateAlertStatus, parseLimit } from './validation';
+import { bucketIndexForTimestamp } from './timeBuckets';
 
 // Validate environment at startup — fail fast on bad config.
 function loadConfigOrExit(): AppConfig {
@@ -89,7 +90,9 @@ function addLog(event: LogEvent): Alert | null {
   severityCounts.set(event.severity, (severityCounts.get(event.severity) ?? 0) + 1);
   portCounts.set(event.destination_port, (portCounts.get(event.destination_port) ?? 0) + 1);
 
-  const bucket = timeSeries[timeSeries.length - 1];
+  // Count into the bucket matching the event's own timestamp so back-dated
+  // seed events populate historical buckets instead of spiking the current one.
+  const bucket = timeSeries[bucketIndexForTimestamp(Date.now(), event.timestamp, timeSeries.length)];
   bucket.count++;
   // Increment the typed severity counter directly — avoids unsafe index cast
   if (event.severity === 'critical') bucket.critical++;

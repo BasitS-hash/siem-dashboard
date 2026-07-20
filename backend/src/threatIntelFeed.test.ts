@@ -52,6 +52,29 @@ describe('parseUrlhausCsv', () => {
   it('handles an empty input gracefully', () => {
     expect(parseUrlhausCsv('')).toEqual([]);
   });
+
+  it('preserves commas inside quoted fields (RFC 4180)', () => {
+    // The tags field legitimately contains commas inside its quotes; the parser
+    // must not split on them.
+    const csv = [
+      header,
+      '"1","2024-01-01","http://x.example/a","online","2024","exploit","emotet,loader,elf","link","rep"',
+    ].join('\n');
+
+    const result = parseUrlhausCsv(csv);
+    expect(result).toHaveLength(1);
+    expect(result[0].tags).toEqual(['emotet', 'loader', 'elf']);
+    expect(result[0].url).toBe('http://x.example/a');
+  });
+
+  it('unescapes doubled quotes inside a quoted field', () => {
+    const csv = [
+      header,
+      '"1","2024-01-01","http://x.example/""weird""path","online","2024","malware","tag","link","rep"',
+    ].join('\n');
+
+    expect(parseUrlhausCsv(csv)[0].url).toBe('http://x.example/"weird"path');
+  });
 });
 
 describe('geoFromCountryCode', () => {
