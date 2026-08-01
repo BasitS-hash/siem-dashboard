@@ -1,4 +1,18 @@
 version: 2
+
+# Grouping policy
+# ---------------
+# Each ecosystem groups its minor + patch updates into ONE pull request.
+# The previous config grouped only `dependency-type: development`, so every
+# production dependency still got its own PR — this repo reached 19 open at
+# once, which buries anything that actually matters.
+#
+# The React runtime pair is grouped at ANY update level, majors included:
+# dependabot otherwise raises `react` and `react-dom` separately and each PR
+# fails on a peer conflict with the other's pinned version.
+#
+# Non-React major bumps stay ungrouped — breaking by nature, so they deserve an
+# individual PR that can be judged (or closed) on its own.
 updates:
   # Root workspace (concurrently, shared tooling)
   - package-ecosystem: npm
@@ -7,12 +21,13 @@ updates:
       interval: "monthly"
       day: monday
       time: '06:00'
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 3
     labels:
       - dependencies
     groups:
-      dev-dependencies:
-        dependency-type: development
+      npm-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
 
   - package-ecosystem: npm
     directory: /backend
@@ -20,13 +35,14 @@ updates:
       interval: "monthly"
       day: monday
       time: '06:00'
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 3
     labels:
       - dependencies
       - backend
     groups:
-      dev-dependencies:
-        dependency-type: development
+      npm-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
 
   - package-ecosystem: npm
     directory: /frontend
@@ -34,13 +50,20 @@ updates:
       interval: "monthly"
       day: monday
       time: '06:00'
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 3
     labels:
       - dependencies
       - frontend
     groups:
-      dev-dependencies:
-        dependency-type: development
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      npm-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
 
   # GitHub Actions workflow updates
   - package-ecosystem: github-actions
@@ -49,5 +72,9 @@ updates:
       interval: "monthly"
       day: monday
       time: '06:00'
+    open-pull-requests-limit: 2
     labels:
       - ci
+    groups:
+      actions-all:
+        patterns: ["*"]
